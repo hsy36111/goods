@@ -789,7 +789,10 @@ with c_main_L:
                                 
                                 badge = get_vendor_badge_html(vendor_val)
                                 # [Update] 업체명 줄바꿈 처리 (<br> 추가)
-                                st.markdown(f"<div style='line-height:1.4;'><b>{int(price_val):,} 원</b><br>{badge}</div>", unsafe_allow_html=True)
+                                # [Fix] 도안 분배가 있을 경우 금액 표시는 나중에 도안 합계로 대체됨
+                                # 일단 임시로 표시하고, 도안 분배 후 덮어쓰기
+                                price_placeholder = st.empty()
+                                price_placeholder.markdown(f"<div style='line-height:1.4;'><b>{int(price_val):,} 원</b><br>{badge}</div>", unsafe_allow_html=True)
                                 if calc_res['note']: 
                                     st.caption(calc_res['note']); unit_val_display = calc_res['note']
                                     
@@ -804,6 +807,7 @@ with c_main_L:
                             is_color_split = "컨러군번줄" in final_item
                             
                             if is_design_split or is_color_split:
+                                # [Fix] 상위에 표시된 메인 금액을 도안 합계로 대체하기 위해 placeholder 재사용
                                 st.markdown("---")
                                 heading = "🎨 **색상 분배 (Multi-Color)**" if is_color_split else "🎨 **도안 분배 (Multi-Design)**"
                                 st.caption(heading)
@@ -953,9 +957,11 @@ with c_main_L:
                                                 st.session_state['rows'][i]['designs'].pop(d_idx)
                                                 st.rerun()
 
-                                # 최종 합계 표시 및 메인 가격 덮어쓰기
+                                # [Fix] 도안 합계를 상위의 메인 금액 위치에 표시 (placeholder 업데이트)
+                                # 하단에 도안 합계를 별도로 표시하지 않고, 상위 금액을 덮어씀
                                 if not is_color_split:
-                                    st.markdown(f"👉 **도안 합계: {int(total_design_price):,} 원**")
+                                    # 도안 분배 UI 안에서는 표시하지 않음 (상위에 표시됨)
+                                    pass
                             
                                 # [Important] 메인 로직의 결과값을 이 도안 합계로 대체해야 함
                                 # 위에서 이미 export_data.append(...) 하고 total_supply_price += ... 했음.
@@ -1000,6 +1006,9 @@ with c_main_L:
                                         '금액': price_val, 
                                         '업체': vendor_val 
                                     })
+                                
+                                # [Fix] 상위 금액 표시를 도안 합계로 업데이트
+                                price_placeholder.markdown(f"<div style='line-height:1.4;'><b>{int(total_design_price):,} 원</b><br>{get_vendor_badge_html(vendor_val)}</div>", unsafe_allow_html=True)
                             
                             # ---------------------------
                             # B. DB 매칭 실패 (수기 입력)
